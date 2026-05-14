@@ -45,7 +45,14 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 //  🔥 여기에 본인의 Firebase 설정값을 넣으세요
 // ─────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
+  apiKey: "AIzaSyCu0IO7Wis_iPdGulEjOIlRfBsdGi3j6h4",
+  authDomain: "soju-app.firebaseapp.com",
+  databaseURL: "https://soju-app-default-rtdb.firebaseio.com",
+  projectId: "soju-app",
+  storageBucket: "soju-app.firebasestorage.app",
+  messagingSenderId: "1029912143477",
+  appId: "1:1029912143477:web:a9300857d3a364030dba3c",
+};:            "YOUR_API_KEY",
   authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
   databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
   projectId:         "YOUR_PROJECT_ID",
