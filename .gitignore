@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+# 모든 하위 폴더의 node_modules와 .env를 찾아내서 제외하는 마법의 명령어
+**/node_modules/
+**/.env
+**/.env.local
+**/dist/
+**/.DS_Store
