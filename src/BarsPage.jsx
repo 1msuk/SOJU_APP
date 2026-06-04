@@ -1,10 +1,3 @@
-// ============================================================
-//  MatjibSuljip.jsx  —  술집 목록/등록/리뷰 (Firestore 연동)
-// ============================================================
-//  npm install firebase
-//  폴더 구조: firebase.js 와 같은 폴더에 두세요
-// ============================================================
-
 import { useState, useEffect } from "react";
 import {
   signInAnon, onAuthChange,
@@ -13,6 +6,10 @@ import {
 
 const CATEGORIES = ["전체","포차","이자카야","맥주바","소주방","루프탑바","와인바","호프집","기타"];
 const REGIONS    = ["전체","서울","부산","대구","인천","광주","대전","울산","경기","강원","충청","전라","경상","제주"];
+
+// 👑 마스터(관리자) 계정으로 지정할 유저님의 진짜 Firebase UID를 여기에 적으세요!
+// (파이어베이스 콘솔 -> Authentication -> Users 탭에서 확인할 수 있습니다)
+const MASTER_UID = "wef0L603Xtc9jfxVXXjKG1iBhzA2"; 
 
 // ── 별점 ─────────────────────────────────────────────────────
 const Stars = ({ value, onChange, size=20, readonly=false }) => {
@@ -88,7 +85,7 @@ const BarCard = ({ bar, onClick }) => {
   );
 };
 
-// ── 술집 상세 ────────────────────────────────────────────────
+// ── 술집 상세 (🗺️ 카카오맵 연동 적용 완료) ───────────────────────────
 const BarDetail = ({ bar, myUid, onBack }) => {
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(0);
@@ -96,6 +93,43 @@ const BarDetail = ({ bar, myUid, onBack }) => {
   const [submitting, setSubmitting] = useState(false);
   const avgRating = avg(bar.reviews.map(r=>r.rating));
 
+  // 🗺️ 카카오맵 로드 로직 추가
+  // 기존 useEffect가 있던 자리에 그대로 붙여넣으세요!
+useEffect(() => {
+  if (!window.kakao || !window.kakao.maps) return;
+  
+  // 💡 포인트 1: 0.2초의 미세한 지연(setTimeout)을 주어 화면이 완전히 뜬 후 지도를 그리게 합니다.
+  const timer = setTimeout(() => {
+    const container = document.getElementById("kakao-detail-map");
+    if (!container) return;
+
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    
+    geocoder.addressSearch(bar.address, (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK) {
+        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+        
+        const map = new window.kakao.maps.Map(container, {
+          center: coords,
+          level: 3
+        });
+
+        new window.kakao.maps.Marker({
+          map: map,
+          position: coords
+        });
+
+        // 💡 포인트 2: 구겨지거나 검게 깨진 지도를 정상 크기로 다시 펼쳐주는 핵심 명령입니다.
+        setTimeout(() => {
+          map.relayout();
+          map.setCenter(coords);
+        }, 50);
+      }
+    });
+  }, 200);
+
+  return () => clearTimeout(timer);
+}, [bar.address]);
   const submit = async () => {
     if (!rating || !text.trim() || submitting) return;
     setSubmitting(true);
@@ -123,7 +157,11 @@ const BarDetail = ({ bar, myUid, onBack }) => {
           </div>
         </div>
         <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:14, lineHeight:1.6 }}>{bar.desc}</p>
-        <p style={{ margin:"0 0 4px", color:"#555575", fontSize:13 }}>📍 {bar.address}</p>
+        <p style={{ margin:"0 0 12px", color:"#555575", fontSize:13 }}>📍 {bar.address}</p>
+
+        {/* 🗺️ 진짜 카카오 지도가 렌더링될 영역 */}
+        <div id="kakao-detail-map" style={{ width: "100%", height: "180px", borderRadius: 12, marginBottom: 12, border: "1px solid #252540" }}></div>
+
         {bar.phone && <p style={{ margin:0, color:"#555575", fontSize:13 }}>📞 {bar.phone}</p>}
       </div>
 
@@ -149,7 +187,7 @@ const BarDetail = ({ bar, myUid, onBack }) => {
 
       {showForm && (
         <div style={{ background:"#111120", border:"1px solid #F5A62330", borderRadius:16, padding:16, marginBottom:14, animation:"slideUp 0.2s ease" }}>
-          <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:13 }}>별점 선택 (필수)</p>
+          <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:13 }}>別점 선택 (필수)</p>
           <Stars value={rating} onChange={setRating} size={28} />
           <textarea value={text} onChange={e => setText(e.target.value)}
             placeholder="분위기, 안주, 가격 등을 알려주세요"
@@ -226,7 +264,7 @@ const RegisterBar = ({ onClose }) => {
 
       {[
         {key:"name",   label:"술집 이름 *",         ph:"예: 달빛 포차"},
-        {key:"address",label:"주소 *",               ph:"예: 서울 마포구 연남동 123-4"},
+        {key:"address",label:"주소 (정확히 적어야 지도가 뜹니다) *", ph:"예: 대구 중구 동성로2길 50"},
         {key:"phone",  label:"전화번호",              ph:"예: 02-1234-5678"},
         {key:"desc",   label:"소개",                  ph:"분위기, 특징을 간단히 써주세요"},
         {key:"tags",   label:"태그 (쉼표로 구분)",    ph:"예: 혼술, 감성, 야장"},
@@ -299,13 +337,15 @@ export default function BarsPage({ myUid, onTabChange }) {
 
   return (
     <div>
-      {/* 상단 버튼 */}
-      <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:14 }}>
-        <button onClick={() => setShowRegister(true)} style={{
-          background:"linear-gradient(135deg,#F5A623,#e89018)", border:"none", color:"#0a0a14",
-          borderRadius:12, padding:"8px 16px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit",
-        }}>+ 술집 등록</button>
-      </div>
+      {/* 👑 마스터 계정 전용 필터링 조건 추가 (지정한 마스터 ID일 때만 등록 버튼 표시) */}
+      {myUid === MASTER_UID && (
+        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:14 }}>
+          <button onClick={() => setShowRegister(true)} style={{
+            background:"linear-gradient(135deg,#F5A623,#e89018)", border:"none", color:"#0a0a14",
+            borderRadius:12, padding:"8px 16px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit",
+          }}>+ 술집 등록 (관리자)</button>
+        </div>
+      )}
 
       {/* 검색 */}
       <div style={{ display:"flex", gap:10, alignItems:"center", background:"#111120", border:"1px solid #1e1e32", borderRadius:12, padding:"10px 14px", marginBottom:12 }}>
@@ -353,7 +393,7 @@ export default function BarsPage({ myUid, onTabChange }) {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:"center", padding:"50px 0", color:"#444460" }}>
+        <div style={{ textAlgn:"center", padding:"50px 0", color:"#444460" }}>
           <div style={{ fontSize:36, marginBottom:10, animation:"pulse 1s infinite" }}>🍶</div>
           <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
           <p>술집 불러오는 중...</p>
@@ -362,7 +402,10 @@ export default function BarsPage({ myUid, onTabChange }) {
         <div style={{ textAlign:"center", padding:"50px 0", color:"#333350" }}>
           <div style={{ fontSize:40, marginBottom:10 }}>🍺</div>
           <p>검색 결과가 없어요</p>
-          <button onClick={()=>setShowRegister(true)} style={{ marginTop:12, background:"none", border:"1px solid #F5A62340", color:"#F5A623", borderRadius:10, padding:"8px 16px", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>이 술집을 등록해보세요</button>
+          {/* 👑 일반 유저의 묻지마 등록을 완전히 차단 */}
+          {myUid === MASTER_UID && (
+            <button onClick={()=>setShowRegister(true)} style={{ marginTop:12, background:"none", border:"1px solid #F5A62340", color:"#F5A623", borderRadius:10, padding:"8px 16px", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>이 술집을 등록해보세요</button>
+          )}
         </div>
       ) : (
         <>

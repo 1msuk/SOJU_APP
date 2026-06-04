@@ -4,68 +4,28 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>맛집술집</title>
-    <meta name="description" content="전국 술집 탐방 & 술친구 찾기" />
-
-    <!--
-      ✅ [보안 추가] Content-Security-Policy (CSP)
-      XSS 공격의 추가 방어층 — 허용된 출처에서만 리소스 로드
-      - default-src 'self'        : 기본적으로 같은 도메인만 허용
-      - script-src                : JS 실행 허용 도메인 (kakao, firebase)
-      - connect-src               : API 요청 허용 도메인 (firebase)
-      - img-src 'self' data:      : 이미지 허용 (data URI 포함)
-      - style-src 'self' 'unsafe-inline' : 인라인 스타일 허용 (React 필요)
-    -->
+    
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://dapi.kakao.com https://www.gstatic.com https://*.firebaseapp.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com http://dapi.kakao.com https://*.kakao.com http://*.kakao.com https://www.gstatic.com https://*.firebaseapp.com;
       connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com;
-      img-src 'self' data: https:;
+      img-src 'self' data: https: https://*.daumcdn.net http://*.daumcdn.net;
       style-src 'self' 'unsafe-inline';
       font-src 'self' https://fonts.gstatic.com;
       frame-src 'none';
     " />
 
-    <!--
-      ✅ [보안 추가] X-Content-Type-Options
-      브라우저가 MIME 타입을 임의로 추론하지 못하게 막음
-    -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <title>맛집술집</title>
+    <meta name="description" content="전국 술집 탐방 & 술친구 찾기" />
 
-    <!--
-      ✅ [보안 추가] Referrer-Policy
-      외부 링크 클릭 시 URL 정보가 유출되지 않게 제한
-    -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
-    <!--
-      ======================================================
-      🗺 카카오맵 API 스크립트
-
-      ✅ Vite는 index.html에서 %변수명% 문법으로 .env 값을 읽어요
-      ⚠️ .env 파일에 반드시 아래 변수가 있어야 합니다:
-         VITE_KAKAO_MAP_KEY=발급받은_JavaScript_키
-
-      [카카오 API 키 발급 방법]
-      1. developers.kakao.com 접속 → 로그인
-      2. 내 애플리케이션 → 애플리케이션 추가
-      3. 앱 이름: 맛집술집 → 저장
-      4. 플랫폼 → Web 플랫폼 등록
-         - https://soju-app.vercel.app
-         - http://localhost:5173
-      5. 앱 키 탭 → JavaScript 키 복사 → .env에 붙여넣기
-
-      [무료 한도]
-      - 하루 300,000회 호출 무료 / 신용카드 불필요
-      ======================================================
-    -->
     <script
       type="text/javascript"
       src="//dapi.kakao.com/v2/maps/sdk.js?appkey=%VITE_KAKAO_MAP_KEY%&libraries=services">
     </script>
 
-    <!-- PWA: 모바일 홈 화면에 추가 시 앱처럼 동작 -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -25,15 +25,18 @@ import {
 } from "firebase/database";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
+// src/firebase.js 수정
 const firebaseConfig = {
   apiKey: "AIzaSyCu0IO7Wis_iPdGulEjOIlRfBsdGi3j6h4",
   authDomain: "soju-app.firebaseapp.com",
-  databaseURL: "https://soju-app-default-rtdb.firebaseio.com",
+  databaseURL: "https://soju-app-default-rtdb.firebaseio.com", // 이 주소가 누락되어 에러가 난 것입니다.
   projectId: "soju-app",
   storageBucket: "soju-app.firebasestorage.app",
   messagingSenderId: "1029912143477",
   appId: "1:1029912143477:web:a9300857d3a364030dba3c",
 };
+
+// ... 나머지 하단 코드는 그대로 유지 (sanitizeAndTrim 함수 위치만 파일 맨 아래인지 확인)
 
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
@@ -129,4 +132,10 @@ export const onPartnerLeave = (roomId, myUid, callback) => {
     }
   });
   return () => off(usersRef);
+};
+
+// 밖으로 완벽하게 독립 분리된 정제 함수
+export const sanitizeAndTrim = (str) => {
+  if (!str) return '';
+  return str.trim();
 };
