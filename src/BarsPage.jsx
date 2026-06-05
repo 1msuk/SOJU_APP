@@ -7,8 +7,6 @@ import {
 const CATEGORIES = ["전체","포차","이자카야","맥주바","소주방","루프탑바","와인바","호프집","기타"];
 const REGIONS    = ["전체","서울","부산","대구","인천","광주","대전","울산","경기","강원","충청","전라","경상","제주"];
 
-// 👑 마스터(관리자) 계정으로 지정할 유저님의 진짜 Firebase UID를 여기에 적으세요!
-// (파이어베이스 콘솔 -> Authentication -> Users 탭에서 확인할 수 있습니다)
 const MASTER_UID = "wef0L603Xtc9jfxVXXjKG1iBhzA2"; 
 
 // ── 별점 ─────────────────────────────────────────────────────
@@ -85,51 +83,75 @@ const BarCard = ({ bar, onClick }) => {
   );
 };
 
-// ── 술집 상세 (🗺️ 카카오맵 연동 적용 완료) ───────────────────────────
+// ── 술집 상세 (🗺️ 카카오맵 연동 및 로딩 버그 완벽 수정) ───────────────────────────
 const BarDetail = ({ bar, myUid, onBack }) => {
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false); // 지도가 진짜 성공적으로 그려졌는지 체크
   const avgRating = avg(bar.reviews.map(r=>r.rating));
 
-  // 🗺️ 카카오맵 로드 로직 추가
-  // 기존 useEffect가 있던 자리에 그대로 붙여넣으세요!
-useEffect(() => {
-  if (!window.kakao || !window.kakao.maps) return;
-  
-  // 💡 포인트 1: 0.2초의 미세한 지연(setTimeout)을 주어 화면이 완전히 뜬 후 지도를 그리게 합니다.
-  const timer = setTimeout(() => {
+  useEffect(() => {
+    // 1. 카카오맵 SDK와 주소 검색(services) 서비스가 모두 존재하는지 체크
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      console.warn("카카오맵 SDK 또는 services 라이브러리가 로드되지 않았습니다. index.html을 확인하세요.");
+      return;
+    }
+    
     const container = document.getElementById("kakao-detail-map");
     if (!container) return;
 
-    const geocoder = new window.kakao.maps.services.Geocoder();
-    
-    geocoder.addressSearch(bar.address, (result, status) => {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+    // 2. 화면이 부드럽게 뜬 후 안전하게 지도를 그리도록 0.3초의 유예를 줍니다.
+    const timer = setTimeout(() => {
+      try {
+        const geocoder = new window.kakao.maps.services.Geocoder();
         
-        const map = new window.kakao.maps.Map(container, {
-          center: coords,
-          level: 3
-        });
+        geocoder.addressSearch(bar.address, (result, status) => {
+          // 주소 검색 성공 시
+          if (status === window.kakao.maps.services.Status.OK) {
+            const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+            
+            const map = new window.kakao.maps.Map(container, {
+              center: coords,
+              level: 3,
+              draggable: true,
+              scrollwheel: true,
+            });
 
-        new window.kakao.maps.Marker({
-          map: map,
-          position: coords
-        });
+            new window.kakao.maps.Marker({
+              map: map,
+              position: coords,
+              title: bar.name,
+            });
 
-        // 💡 포인트 2: 구겨지거나 검게 깨진 지도를 정상 크기로 다시 펼쳐주는 핵심 명령입니다.
-        setTimeout(() => {
-          map.relayout();
-          map.setCenter(coords);
-        }, 50);
+            // 깨짐 방지 릴레이아웃 후 로딩 상태 해제!
+            setTimeout(() => {
+              map.relayout();
+              map.setCenter(coords);
+              setMapLoaded(true); // 👈 여기서 로딩창을 싹 걷어냅니다.
+            }, 200);
+
+          } else {
+            // 주소 검색 실패 시 (기본 서울 시청 지도로 대체하고 로딩창 제거)
+            console.warn(`주소 검색 실패: ${bar.address}. 기본 지도를 띄웁니다.`);
+            const defaultCoords = new window.kakao.maps.LatLng(37.5665, 126.9780);
+            const map = new window.kakao.maps.Map(container, {
+              center: defaultCoords,
+              level: 3,
+            });
+            setMapLoaded(true); 
+          }
+        });
+      } catch(e) {
+        console.error("카카오맵 초기화 실패:", e);
+        setMapLoaded(true); // 에러가 나더라도 로딩 글자는 지워줍니다.
       }
-    });
-  }, 200);
+    }, 300);
 
-  return () => clearTimeout(timer);
-}, [bar.address]);
+    return () => clearTimeout(timer);
+  }, [bar.address, bar.name]);
+
   const submit = async () => {
     if (!rating || !text.trim() || submitting) return;
     setSubmitting(true);
@@ -159,8 +181,36 @@ useEffect(() => {
         <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:14, lineHeight:1.6 }}>{bar.desc}</p>
         <p style={{ margin:"0 0 12px", color:"#555575", fontSize:13 }}>📍 {bar.address}</p>
 
-        {/* 🗺️ 진짜 카카오 지도가 렌더링될 영역 */}
-        <div id="kakao-detail-map" style={{ width: "100%", height: "180px", borderRadius: 12, marginBottom: 12, border: "1px solid #252540" }}></div>
+        {/* 지도 컨테이너 박스 */}
+        <div 
+          id="kakao-detail-map" 
+          style={{ 
+            width: "100%", 
+            height: "220px", 
+            borderRadius: 12, 
+            marginBottom: 12, 
+            border: "1px solid #252540",
+            backgroundColor: "#0e0e1c",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+          {/* 지도가 완전히 준비되기 전까지만 오버레이로 로딩 표시 */}
+          {!mapLoaded && (
+            <div style={{ 
+              position: "absolute", 
+              top: 0, left: 0, width: "100%", height: "100%",
+              backgroundColor: "#0e0e1c",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              color: "#444460",
+              zIndex: 10,
+            }}>
+              <div style={{ fontSize: 24, marginBottom: 6, animation: "spin 2s linear infinite" }}>🗺️</div>
+              <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+              <div style={{ fontSize: 12 }}>지도 로딩 중...</div>
+            </div>
+          )}
+        </div>
 
         {bar.phone && <p style={{ margin:0, color:"#555575", fontSize:13 }}>📞 {bar.phone}</p>}
       </div>
@@ -187,7 +237,7 @@ useEffect(() => {
 
       {showForm && (
         <div style={{ background:"#111120", border:"1px solid #F5A62330", borderRadius:16, padding:16, marginBottom:14, animation:"slideUp 0.2s ease" }}>
-          <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:13 }}>別점 선택 (필수)</p>
+          <p style={{ margin:"0 0 10px", color:"#9090b0", fontSize:13 }}>별점 선택 (필수)</p>
           <Stars value={rating} onChange={setRating} size={28} />
           <textarea value={text} onChange={e => setText(e.target.value)}
             placeholder="분위기, 안주, 가격 등을 알려주세요"
@@ -337,7 +387,6 @@ export default function BarsPage({ myUid, onTabChange }) {
 
   return (
     <div>
-      {/* 👑 마스터 계정 전용 필터링 조건 추가 (지정한 마스터 ID일 때만 등록 버튼 표시) */}
       {myUid === MASTER_UID && (
         <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:14 }}>
           <button onClick={() => setShowRegister(true)} style={{
@@ -347,14 +396,12 @@ export default function BarsPage({ myUid, onTabChange }) {
         </div>
       )}
 
-      {/* 검색 */}
       <div style={{ display:"flex", gap:10, alignItems:"center", background:"#111120", border:"1px solid #1e1e32", borderRadius:12, padding:"10px 14px", marginBottom:12 }}>
         <span style={{ color:"#555575" }}>🔍</span>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="술집 이름, 태그 검색"
           style={{ flex:1, background:"none", border:"none", outline:"none", color:"#f0f0ff", fontSize:13, fontFamily:"inherit" }} />
       </div>
 
-      {/* 지역 */}
       <div style={{ display:"flex", gap:8, overflowX:"auto", marginBottom:10, paddingBottom:4 }}>
         {REGIONS.map(r => (
           <button key={r} onClick={()=>setRegion(r)} style={{
@@ -367,7 +414,6 @@ export default function BarsPage({ myUid, onTabChange }) {
         ))}
       </div>
 
-      {/* 카테고리 */}
       <div style={{ display:"flex", gap:8, overflowX:"auto", marginBottom:12, paddingBottom:4 }}>
         {CATEGORIES.map(c => (
           <button key={c} onClick={()=>setCategory(c)} style={{
@@ -380,7 +426,6 @@ export default function BarsPage({ myUid, onTabChange }) {
         ))}
       </div>
 
-      {/* 정렬 */}
       <div style={{ display:"flex", gap:12, marginBottom:12, justifyContent:"flex-end" }}>
         {[["recent","최신순"],["rating","평점순"],["reviews","리뷰순"]].map(([k,l]) => (
           <button key={k} onClick={()=>setSortBy(k)} style={{
@@ -393,7 +438,7 @@ export default function BarsPage({ myUid, onTabChange }) {
       </div>
 
       {loading ? (
-        <div style={{ textAlgn:"center", padding:"50px 0", color:"#444460" }}>
+        <div style={{ textAlign:"center", padding:"50px 0", color:"#444460" }}>
           <div style={{ fontSize:36, marginBottom:10, animation:"pulse 1s infinite" }}>🍶</div>
           <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
           <p>술집 불러오는 중...</p>
@@ -402,7 +447,6 @@ export default function BarsPage({ myUid, onTabChange }) {
         <div style={{ textAlign:"center", padding:"50px 0", color:"#333350" }}>
           <div style={{ fontSize:40, marginBottom:10 }}>🍺</div>
           <p>검색 결과가 없어요</p>
-          {/* 👑 일반 유저의 묻지마 등록을 완전히 차단 */}
           {myUid === MASTER_UID && (
             <button onClick={()=>setShowRegister(true)} style={{ marginTop:12, background:"none", border:"1px solid #F5A62340", color:"#F5A623", borderRadius:10, padding:"8px 16px", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>이 술집을 등록해보세요</button>
           )}
