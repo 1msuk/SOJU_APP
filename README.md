@@ -16,12 +16,12 @@ The React Compiler is not enabled on this template because of its impact on dev 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
 ## 🚀 1. 프로젝트 기획 의도 및 핵심 기능 (Goal & Features)
-사용자가 전국의 다양한 맛집과 숨은 술집을 카테고리별, 지역별로 탐색하고 나만의 리뷰를 남길 수 있는 ‘다크 모드 기반의 감성형 맛집·술집 아카이빙 플랫폼’을 목표로 개발했습니다.
+사용자가 전국의 다양한 맛집과 숨은 술집을 웹에 등록하고 등록된 술집을 카테고리별, 지역별로 탐색하고 나만의 리뷰를 남길 수 있는 ‘감성형 맛집·술집 아카이빙 플랫폼’을 목표로 개발했습니다.
 
  📌 원래 구현하고자 했던 핵심 기능
 Firebase 기반 실시간 데이터 연동: Firebase Firestore를 활용해 등록된 술집 목록 및 리뷰 데이터를 실시간(subscribeBars)으로 동기화
 
-커스텀 UI/UX: 익명 로그인 기능, 5점 만점의 애니메이션 별점 컴포넌트, 카테고리/지역별 수평 스크롤 필터링 및 3가지 정렬(최신순, 평점순, 리뷰순) 기능 구현
+커스텀 UI/UX: 익명 로그인 기능,  5점 만점의 애니메이션 별점 컴포넌트, 카테고리/지역별 수평 스크롤 필터링 및 3가지 정렬(최신순, 평점순, 리뷰순) 기능 구현
 
  🗺️ 카카오맵 API 기반 상세 위치 제공: 사용자가 등록한 지번/도로명 주소를 Geocoder를 통해 좌표로 변환하여 상세 페이지 내에 정확한 지도로 시각화
 
