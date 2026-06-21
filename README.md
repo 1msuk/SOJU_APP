@@ -56,3 +56,5 @@ UX 중심의 예외 처리와 안전장치 구축: 지도가 깨지는 버그를
 BFF(Backend For Frontend) 또는 Serverless 도입: 차기 버전에서는 Next.js API Routes나 Node.js 백엔드를 도입하여 외부 API Key를 안전하게 숨기고(Encapsulation), 서버 단에서 카카오 장소 검색 데이터를 미리 크롤링 및 정제(Parsing)하여 Firebase에 공급하는 파이프라인을 구축할 예정입니다.
 
 Debounce 기반의 장소 검색 기능 추가: 사용자가 입력을 마쳤을 때만 API를 호출하는 Debounce 기술을 적용해 API 쿼타 소모를 최적화하는 주소 자동완성 기능을 반드시 완성할 것입니다.
+
+## 웹 주소 : https://soju-app.vercel.app/
