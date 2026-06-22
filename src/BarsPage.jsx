@@ -93,17 +93,19 @@ const BarDetail = ({ bar, myUid, onBack }) => {
   const avgRating = avg(bar.reviews.map(r=>r.rating));
 
   useEffect(() => {
-    // 1. 카카오맵 SDK와 주소 검색(services) 서비스가 모두 존재하는지 체크
-    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
-      console.warn("카카오맵 SDK 또는 services 라이브러리가 로드되지 않았습니다. index.html을 확인하세요.");
-      return;
-    }
-    
-    const container = document.getElementById("kakao-detail-map");
-    if (!container) return;
+  // 1. 카카오맵 SDK와 주소 검색(services) 서비스가 모두 존재하는지 체크
+  if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+    console.warn("카카오맵 SDK 또는 services 라이브러리가 로드되지 않았습니다. index.html을 확인하세요.");
+    return;
+  }
+  
+  const container = document.getElementById("kakao-detail-map");
+  if (!container) return;
 
-    // 2. 화면이 부드럽게 뜬 후 안전하게 지도를 그리도록 0.3초의 유예를 줍니다.
-    const timer = setTimeout(() => {
+  // 2. 화면이 부드럽게 뜬 후 안전하게 지도를 그리도록 0.3초의 유예를 줍니다.
+  const timer = setTimeout(() => {
+    // ⭐️ [여기만 추가!] 카카오맵 라이브러리가 완전히 로드된 후 내부 로직을 실행하도록 보장합니다.
+    window.kakao.maps.load(() => {
       try {
         const geocoder = new window.kakao.maps.services.Geocoder();
         
@@ -147,10 +149,11 @@ const BarDetail = ({ bar, myUid, onBack }) => {
         console.error("카카오맵 초기화 실패:", e);
         setMapLoaded(true); // 에러가 나더라도 로딩 글자는 지워줍니다.
       }
-    }, 300);
+    }); // ⭐️ [여기만 추가!] load 함수 닫는 괄호
+  }, 300);
 
-    return () => clearTimeout(timer);
-  }, [bar.address, bar.name]);
+  return () => clearTimeout(timer);
+}, [bar.address, bar.name]);
 
   const submit = async () => {
     if (!rating || !text.trim() || submitting) return;
